@@ -1,0 +1,26 @@
+# Python 3.10.x ONLY
+
+# ---- LLM / Agents ----
+langchain>=0.1.0,<0.2
+langgraph>=0.0.40
+langchain-community>=0.0.20
+
+ollama>=0.1.0
+
+# ---- Data / Quant ----
+pandas>=2.0,<2.3
+numpy>=1.24,<2.0
+scipy>=1.10,<1.13
+yfinance>=0.2.30
+ta>=0.10.2
+breeze-connect>=1.0
+
+# pandas_ta
+
+# ---- Validation ----
+pydantic>=2.0,<3.0
+
+# ---- Utilities ----
+rich>=13.0
+loguru>=0.7
+python-dotenv>=1.0
