@@ -1,0 +1,25 @@
+# Queries for equity_daily data - yaml
+
+queries:
+  get_equity_daily:
+    sql: |
+      SELECT * FROM equity_daily
+      WHERE symbol = :symbol
+      {% if start_date and end_date %}
+      AND date BETWEEN :start_date AND :end_date
+      {% else %}
+      ORDER BY date DESC LIMIT 1
+      {% endif %}
+
+  insert_equity_daily:
+    sql: |
+      INSERT INTO equity_daily (symbol, date, open, high, low, close, volume, adj_close)
+      VALUES (%(symbol)s, %(date)s, %(open)s, %(high)s, %(low)s, %(close)s, %(volume)s, %(adj_close)s)
+      ON CONFLICT (symbol, date) DO UPDATE SET
+        open = EXCLUDED.open,
+        high = EXCLUDED.high,
+        low = EXCLUDED.low,
+        close = EXCLUDED.close,
+        volume = EXCLUDED.volume,
+        adj_close = EXCLUDED.adj_close;
+      

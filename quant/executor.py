@@ -54,7 +54,9 @@ def screen_for_patterns(
     
     results = []
     all_stock_df = []
-    for symbol, df in historical.items():
+    for symbol in historical['symbol'].unique():
+        
+        df = historical[historical['symbol'] == symbol].copy()
         if df.empty or len(df) < 20:
             continue
         

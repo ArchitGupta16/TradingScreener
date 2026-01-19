@@ -180,57 +180,29 @@ class PostgresStore:
             logger.error("Not connected to database")
             return None
         
+        start_date = start_date.strftime("%Y-%m-%d") if start_date else None
+        end_date = end_date.strftime("%Y-%m-%d") if end_date else None
+        symbols = ", ".join(f"'{s}'" for s in symbol) if symbol else []
+
         if start_date and end_date:
-            select_sql = "SELECT * FROM equity_daily WHERE symbol = %s AND date BETWEEN %s AND %s"
-            params = (symbol, start_date, end_date)
+            select_sql = f"SELECT * FROM equity_daily WHERE symbol in ({symbols}) AND date BETWEEN '{start_date}' AND '{end_date}'"
         else:
-            select_sql = "SELECT * FROM equity_daily WHERE symbol = %s ORDER BY date DESC LIMIT 1"
-            params = (symbol,)
+            select_sql = f"SELECT * FROM equity_daily WHERE symbol in ({symbols}) ORDER BY date DESC LIMIT 1"
         
-        if len(symbol) == 0:
-            select_sql = "SELECT * FROM equity_daily"
+        if len(symbols) == 0:
+            select_sql = "SELECT symbol, date, open, high, low, close, volume FROM equity_daily"
 
         try:
             cursor = self.connection.cursor()
-            cursor.execute(select_sql, params)
-            result = cursor.fetchone()
+            cursor.execute(select_sql)
+            result = cursor.fetchall()
             cursor.close()
 
-            # return the data as dictionary with symbol and dataframe
-
             if result:
-                for row in result:
-                    symbol = row[1]
-                    date = row[2]
-                    open_price = row[3]
-                    high = row[4]
-                    low = row[5]
-                    close = row[6]
-                    volume = row[7]
-                return {
-                    'symbol': symbol, 
-                    'dataframe': pd.DataFrame({
-                        'datetime': [date],
-                        'open': [open_price],
-                        'high': [high],
-                        'low': [low],
-                        'close': [close],
-                        'volume': [volume]
-                    }).set_index('datetime')}
-            
-            if result:
-                return {
-                    'id': result[0],
-                    'symbol': result[1],
-                    'date': result[2],
-                    'open': float(result[3]) if result[3] else None,
-                    'high': float(result[4]) if result[4] else None,
-                    'low': float(result[5]) if result[5] else None,
-                    'close': float(result[6]) if result[6] else None,
-                    'volume': result[7],
-                    'created_at': result[8]
-                }
-            return None
+                return pd.DataFrame(result,columns=[desc[0] for desc in cursor.description])
+            else:
+                print("No data found")
+                return None
         except psycopg2.Error as e:
             logger.error(f"Failed to retrieve equity_daily record: {e}")
             return None

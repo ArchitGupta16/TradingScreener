@@ -64,7 +64,7 @@ class BreezeFetcher:
         )
         # Attempt to connect to database
         if self.postgres_store.connect():
-            self.postgres_store.create_equity_table()
+            self.postgres_store.create_equity_daily_table()
         else:
             logger.warning("PostgreSQL connection failed. Data will not be stored to database.")
     
@@ -95,30 +95,22 @@ class BreezeFetcher:
         #read pickle if present
         try:
             #read from postgres
-            data = self.postgres_store.get_equity(symbols, start_date, end_date)
-            # data = pickle.load(open("D:\Projects\Screener\data.pickle", "rb"))
-            if data:
-                #store to postgres history.equity table
-                if self.postgres_store and self.postgres_store.connection:
-                    for symbol, df in data.items():
-                        if self.postgres_store.insert_dataframe(df, symbol):
-                            logger.info(f"Successfully stored {symbol} data to PostgreSQL from pickle")
-                        else:
-                            logger.warning(f"Failed to store {symbol} data to PostgreSQL from pickle")
+            data = self.postgres_store.get_equity_daily(symbols, start_date, end_date)
+            if len(data)>0:
                 return data
+            
         except Exception as e:
             logger.warning(f"Could not load data: {e}")
         
+        all_data = {}
         for symbol in symbols:
             try:
-                # Breeze API expects instrument tokens, but we'll use symbol-based approach
                 historical_data = self.breeze.get_historical_data_v2(
                     interval=interval,
                     from_date=start_date.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                     to_date=end_date.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                     exchange_code="NSE",
-                    stock_code=symbol 
-                    # stock_code=self._get_stock_token(symbol)
+                    stock_code=symbol
                 )['Success']
                 
                 if historical_data and len(historical_data) > 0:
@@ -126,21 +118,31 @@ class BreezeFetcher:
                     df.columns = [str(col).lower() for col in df.columns]
                     data[symbol] = df
                     print(f"Fetched {len(df)} rows for {symbol} from Breeze")
-                    
-                    # Store to postgres history.equity table
-                    if self.postgres_store and self.postgres_store.connection:
-                        if self.postgres_store.insert_dataframe(df, symbol):
-                            logger.info(f"Successfully stored {symbol} data to PostgreSQL")
-                        else:
-                            logger.warning(f"Failed to store {symbol} data to PostgreSQL")
-                    else:
-                        logger.warning(f"PostgreSQL not available. Skipping database storage for {symbol}")
+                    all_data[symbol] = df
                 else:
                     logger.warning(f"No data returned for {symbol}")
                     
             except Exception as e:
                 logger.warning(f"Failed to fetch {symbol} from Breeze: {e}")
-            time.sleep(0.65)  # To respect API rate limits
+
+            time.sleep(0.65)
+
+        # final format to save in db
+        for symbol, df in all_data.items():
+            df_formatted = df[['datetime', 'open', 'high', 'low', 'close', 'volume']]
+            df_formatted['symbol'] = symbol
+            df_formatted['date'] = pd.to_datetime(df_formatted['datetime']).strftime("%Y-%m-%d")
+            
+            # Store to postgres history.equity_daily table
+        if self.postgres_store and self.postgres_store.connection:
+            if self.postgres_store.insert_dataframe(df_formatted):
+                logger.info(f"Successfully stored {symbol} data to PostgreSQL")
+            else:
+                logger.warning(f"Failed to store {symbol} data to PostgreSQL")
+        else:
+            logger.warning(f"PostgreSQL not available. Skipping database storage for {symbol}")
+
+
         return data
     
     def get_stock_info(self, symbol: str) -> dict:
