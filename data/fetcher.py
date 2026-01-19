@@ -26,7 +26,7 @@ class BreezeFetcher:
     Handles authentication and data retrieval.
     """
     
-    def __init__(self, api_key: Optional[str] = None, api_secret: Optional[str] = None):
+    def __init__(self):
         """
         Initialize Breeze Fetcher with API credentials.
         
@@ -34,21 +34,19 @@ class BreezeFetcher:
             api_key: Breeze API key (defaults to BREEZE_API_KEY env var)
             api_secret: Breeze API secret (defaults to BREEZE_API_SECRET env var)
         """
-        self.api_key = "6Y878rWI6n4uR7&4303M%7Dp37785027"
-        self.api_secret = "LsN525~n86@851F38DCZ9086b95tYo50"
-        # self.api_key = os.getenv('BREEZE_API_KEY')
-        # self.api_secret = os.getenv('BREEZE_API_SECRET')
+        self.api_key = os.getenv('BREEZE_API_KEY')
+        self.api_secret = os.getenv('BREEZE_API_SECRET')
+        self.session_token = os.getenv('BREEZE_SESSION_TOKEN')
         
-        # if not self.api_key or not self.api_secret:
-        #     raise ValueError(
-        #         "Breeze API credentials not provided. "
-        #         "Set BREEZE_API_KEY and BREEZE_API_SECRET environment variables or pass them as arguments."
-        #     )
+        if not self.api_key or not self.api_secret:
+            raise ValueError(
+                "Breeze API credentials not provided. "
+                "Set BREEZE_API_KEY and BREEZE_API_SECRET environment variables or pass them as arguments."
+            )
         
         try:
             self.breeze = BreezeConnect(api_key=self.api_key)
-            # Generate session token using API secret
-            # self.breeze.generate_session(api_secret=self.api_secret, session_token="54342510")
+            self.breeze.generate_session(api_secret=self.api_secret, session_token=self.session_token)
             logger.info("Breeze API session initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize Breeze API: {e}")
@@ -96,11 +94,20 @@ class BreezeFetcher:
         
         #read pickle if present
         try:
-            data = pickle.load(open("D:\Projects\Screener\data.pickle", "rb"))
+            #read from postgres
+            data = self.postgres_store.get_equity(symbols, start_date, end_date)
+            # data = pickle.load(open("D:\Projects\Screener\data.pickle", "rb"))
             if data:
+                #store to postgres history.equity table
+                if self.postgres_store and self.postgres_store.connection:
+                    for symbol, df in data.items():
+                        if self.postgres_store.insert_dataframe(df, symbol):
+                            logger.info(f"Successfully stored {symbol} data to PostgreSQL from pickle")
+                        else:
+                            logger.warning(f"Failed to store {symbol} data to PostgreSQL from pickle")
                 return data
         except Exception as e:
-            logger.warning(f"Could not load pickle file: {e}")
+            logger.warning(f"Could not load data: {e}")
         
         for symbol in symbols:
             try:
@@ -110,8 +117,8 @@ class BreezeFetcher:
                     from_date=start_date.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                     to_date=end_date.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                     exchange_code="NSE",
-                    stock_code=symbol  # May need adjustment
-                    # stock_code=self._get_stock_token(symbol)  # May need adjustment
+                    stock_code=symbol 
+                    # stock_code=self._get_stock_token(symbol)
                 )['Success']
                 
                 if historical_data and len(historical_data) > 0:
@@ -197,7 +204,7 @@ class BreezeFetcher:
         return period_map.get(period, 90)
 
 
-class StockDataFetcher:
+class YFinanceDataFetcher:
     """Fetches and caches stock data from yfinance."""
     
     def __init__(self):
@@ -493,25 +500,24 @@ class ScreenerDataProvider:
         Args:
             data_source: 'breeze', 'yfinance', or None (auto-detect from env or defaults to yfinance)
         """
-        # Determine data source
-        if data_source is None:
-            data_source = 'BREEZE'
-            # data_source = os.getenv('DATA_SOURCE', 'yfinance')
+
+        data_source = os.getenv('DATA_SOURCE', 'yfinance')
+
+        print(f"Initializing Data Provider with data_source: {data_source}")
         
-        print(f"Initializing ScreenerDataProvider with data_source: {data_source}")
-        
-        # Initialize appropriate fetcher
-        if data_source.lower() == 'breeze':
-            self.fetcher = BreezeFetcher()
-            logger.info("Using Breeze API as data source")
-        #     except Exception as e:
-        #         logger.error(f"Failed to initialize Breeze: {e}. Falling back to yfinance.")
-        #         self.fetcher = StockDataFetcher()
-        #         self.data_source = 'yfinance'
-        # else:
-        #     self.fetcher = StockDataFetcher()
-        #     self.data_source = 'yfinance'
-        #     logger.info("Using yfinance as data source")
+        try:
+            if data_source.lower() == 'breeze':
+                self.fetcher = BreezeFetcher()
+                logger.info("Using ICICI Breeze API as data source")
+
+            elif data_source.lower() == 'yfinance':
+                self.fetcher = YFinanceDataFetcher()
+                logger.info("Using yfinance as data source")
+
+        except Exception as e:
+            logger.error(f"Failed to initialize Breeze: {e}. Falling back to yfinance.")
+            self.fetcher = YFinanceDataFetcher()
+            self.data_source = 'yfinance'
         
         self.analyzer = TechnicalAnalyzer()
     
