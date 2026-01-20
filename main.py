@@ -109,7 +109,6 @@ def interactive_screener():
                 pattern_type=pattern_type,
                 min_score=80
             )
-
             
             # Filter by market cap if specified (only if column exists)
             if market_cap_pref and not results.empty and 'market_cap_category' in results.columns:

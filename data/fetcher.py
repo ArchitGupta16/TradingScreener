@@ -131,11 +131,11 @@ class BreezeFetcher:
         for symbol, df in all_data.items():
             df_formatted = df[['datetime', 'open', 'high', 'low', 'close', 'volume']]
             df_formatted['symbol'] = symbol
-            df_formatted['date'] = pd.to_datetime(df_formatted['datetime']).strftime("%Y-%m-%d")
+            df_formatted['date'] = pd.to_datetime(df_formatted['datetime']).dt.strftime("%Y-%m-%d")
             
-            # Store to postgres history.equity_daily table
+        # Store to postgres history.equity_daily table
         if self.postgres_store and self.postgres_store.connection:
-            if self.postgres_store.insert_dataframe(df_formatted):
+            if self.postgres_store.insert_data(df_formatted):
                 logger.info(f"Successfully stored {symbol} data to PostgreSQL")
             else:
                 logger.warning(f"Failed to store {symbol} data to PostgreSQL")

@@ -100,7 +100,7 @@ class PostgresStore:
             self.connection.rollback()
             return False
     
-    def insert_dataframe(self, df: pd.DataFrame, symbol: str) -> bool:
+    def insert_data(self, df: pd.DataFrame) -> bool:
         """
         Insert OHLCV data from a pandas DataFrame.
         Useful for direct integration with yfinance/Breeze data.
@@ -120,7 +120,7 @@ class PostgresStore:
         records = []
         for date, row in df.iterrows():
             records.append({
-                'symbol': symbol,
+                'symbol': row.get('symbol'),
                 'date': row.get('datetime', 'date'),
                 'open': float(row.get('Open', row.get('open', 0))),
                 'high': float(row.get('High', row.get('high', 0))),
