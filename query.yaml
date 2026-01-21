@@ -1,37 +1,34 @@
 # Queries for equity_daily data - yaml
 
 queries:
-  create_equity_table: 
-  sql: |  
-      CREATE TABLE IF NOT EXISTS equity_daily 
-      (
-        id SERIAL,
-        symbol VARCHAR(20) NOT NULL,
-        date TIMESTAMP NOT NULL,
-        open DECIMAL(12, 4),
-        high DECIMAL(12, 4),
-        low DECIMAL(12, 4),
-        close DECIMAL(12, 4),
-        volume BIGINT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(symbol, date)
-      );
-      CREATE INDEX IF NOT EXISTS idx_equity_symbol ON equity_daily(symbol);
-      CREATE INDEX IF NOT EXISTS idx_equity_date ON equity_daily(date);
-      CREATE INDEX IF NOT EXISTS idx_equity_symbol_date ON equity_daily(symbol, date)
+  create_equity_table:   
+    CREATE TABLE IF NOT EXISTS equity_daily 
+    (
+      id SERIAL,
+      symbol VARCHAR(20) NOT NULL,
+      date TIMESTAMP NOT NULL,
+      open DECIMAL(12, 4),
+      high DECIMAL(12, 4),
+      low DECIMAL(12, 4),
+      close DECIMAL(12, 4),
+      volume BIGINT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(symbol, date)
+    );
+    CREATE INDEX IF NOT EXISTS idx_equity_symbol ON equity_daily(symbol);
+    CREATE INDEX IF NOT EXISTS idx_equity_date ON equity_daily(date);
+    CREATE INDEX IF NOT EXISTS idx_equity_symbol_date ON equity_daily(symbol, date)
 
   get_equity_daily:
-    sql: |
-      SELECT symbol, date, open, high, low, close, volume FROM equity_daily
+    SELECT symbol, date, open, high, low, close, volume FROM equity_daily
 
   insert_equity_daily:
-    sql: |
-      INSERT INTO equity_daily (symbol, date, open, high, low, close, volume)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (symbol, date) DO UPDATE SET
-        open = EXCLUDED.open,
-        high = EXCLUDED.high,
-        low = EXCLUDED.low,
-        close = EXCLUDED.close,
-        volume = EXCLUDED.volume
+    INSERT INTO equity_daily (symbol, date, open, high, low, close, volume)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    ON CONFLICT (symbol, date) DO UPDATE SET
+    open = EXCLUDED.open,
+    high = EXCLUDED.high,
+    low = EXCLUDED.low,
+    close = EXCLUDED.close,
+    volume = EXCLUDED.volume
       

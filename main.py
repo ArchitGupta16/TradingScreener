@@ -14,9 +14,10 @@ from agents.quant_agent_logic import screen_logic_agent
 from quant.executor import execute_quant_contract, screen_for_patterns
 from data.fetcher import ScreenerDataProvider
 from stock_universe.stock_symbols import read_stock_symbols
+from configs.config import config as omegacnf
 
 console = Console()
-
+config = omegacnf()
 
 def format_results(df: pd.DataFrame, limit: int = 10) -> str:
     """Format screening results for display."""
@@ -107,7 +108,8 @@ def interactive_screener():
             results, all_stock_df = screen_for_patterns(
                 symbols=stock_universe,
                 pattern_type=pattern_type,
-                min_score=80
+                queries=config.queries,
+                min_score=50
             )
             
             # Filter by market cap if specified (only if column exists)

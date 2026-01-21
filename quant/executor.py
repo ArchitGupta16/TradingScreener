@@ -1,3 +1,4 @@
+import omegaconf
 import pandas as pd
 from schemas.screen_logic import QuantContract
 from quant.features import PatternDetector
@@ -33,6 +34,7 @@ def execute_quant_contract(
 def screen_for_patterns(
     symbols: list,
     pattern_type: str = "both",
+    queries: omegaconf = None,
     min_score: int = 50
 ) -> pd.DataFrame:
     """
