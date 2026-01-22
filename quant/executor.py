@@ -52,7 +52,7 @@ def screen_for_patterns(
     
     data_provider = ScreenerDataProvider()
     # Fetch historical data
-    historical = data_provider.fetcher.get_historical_data(symbols, period="6mo")
+    historical = data_provider.fetcher.get_historical_data(symbols, queries, period="6mo")
     
     results = []
     all_stock_df = []

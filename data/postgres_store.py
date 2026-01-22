@@ -100,7 +100,7 @@ class PostgresStore:
             self.connection.rollback()
             return False
     
-    def insert_data(self, df: pd.DataFrame) -> bool:
+    def insert_data(self, df: pd.DataFrame, query) -> bool:
         """
         Insert OHLCV data from a pandas DataFrame.
         Useful for direct integration with yfinance/Breeze data.
@@ -130,16 +130,16 @@ class PostgresStore:
             })
         
         # Use upsert (ON CONFLICT) for updating existing records
-        insert_sql = """
-        INSERT INTO equity_daily (symbol, date, open, high, low, close, volume)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (symbol, date) DO UPDATE SET
-        open = EXCLUDED.open,
-        high = EXCLUDED.high,
-        low = EXCLUDED.low,
-        close = EXCLUDED.close,
-        volume = EXCLUDED.volume
-        """
+        # insert_sql = """
+        # INSERT INTO equity_daily (symbol, date, open, high, low, close, volume)
+        # VALUES (%s, %s, %s, %s, %s, %s, %s)
+        # ON CONFLICT (symbol, date) DO UPDATE SET
+        # open = EXCLUDED.open,
+        # high = EXCLUDED.high,
+        # low = EXCLUDED.low,
+        # close = EXCLUDED.close,
+        # volume = EXCLUDED.volume
+        # """
 
         try:
             cursor = self.connection.cursor()
@@ -155,7 +155,7 @@ class PostgresStore:
                 )
                 for record in records
             ]
-            execute_batch(cursor, insert_sql, data, page_size=100)
+            execute_batch(cursor, query, data, page_size=100)
             self.connection.commit()
             logger.info(f"Upserted {len(records)} equity_daily records")
             cursor.close()
@@ -165,7 +165,7 @@ class PostgresStore:
             self.connection.rollback()
             return False
 
-    def get_equity_daily(self, symbol: str, start_date, end_date) -> Optional[Dict[str, Any]]:
+    def get_equity_daily(self, symbol: str, start_date, end_date, query) -> Optional[Dict[str, Any]]:
         """
         Retrieve an equity_daily record by symbol and optionally by date.
         
@@ -190,8 +190,8 @@ class PostgresStore:
             select_sql = f"SELECT * FROM equity_daily WHERE symbol in ({symbols}) ORDER BY date DESC LIMIT 1"
         
         if len(symbols) == 0:
-            select_sql = "SELECT symbol, date, open, high, low, close, volume FROM equity_daily"
-
+            select_sql = query
+            
         try:
             cursor = self.connection.cursor()
             cursor.execute(select_sql)

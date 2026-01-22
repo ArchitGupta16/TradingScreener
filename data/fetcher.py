@@ -64,6 +64,7 @@ class BreezeFetcher:
         )
         # Attempt to connect to database
         if self.postgres_store.connect():
+            # add config query here
             self.postgres_store.create_equity_daily_table()
         else:
             logger.warning("PostgreSQL connection failed. Data will not be stored to database.")
@@ -71,6 +72,7 @@ class BreezeFetcher:
     def get_historical_data(
         self, 
         symbols: List[str], 
+        queries: Optional[object] = None,
         period: str = "3mo",
         interval: str = "1day"
     ) -> dict:
@@ -95,7 +97,7 @@ class BreezeFetcher:
         #read pickle if present
         try:
             #read from postgres
-            data = self.postgres_store.get_equity_daily(symbols, start_date, end_date)
+            data = self.postgres_store.get_equity_daily(symbols, start_date, end_date, queries.get_equity_daily)
             if len(data)>0:
                 return data
             
@@ -124,8 +126,8 @@ class BreezeFetcher:
                     
             except Exception as e:
                 logger.warning(f"Failed to fetch {symbol} from Breeze: {e}")
-
             time.sleep(0.65)
+
 
         # final format to save in db
         for symbol, df in all_data.items():
@@ -135,7 +137,7 @@ class BreezeFetcher:
             
         # Store to postgres history.equity_daily table
         if self.postgres_store and self.postgres_store.connection:
-            if self.postgres_store.insert_data(df_formatted):
+            if self.postgres_store.insert_data(df_formatted, queries.insert_equity_daily):
                 logger.info(f"Successfully stored {symbol} data to PostgreSQL")
             else:
                 logger.warning(f"Failed to store {symbol} data to PostgreSQL")
