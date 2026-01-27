@@ -26,28 +26,29 @@ def format_results(df: pd.DataFrame, limit: int = 10) -> str:
     
     df_display = df.head(limit).copy()
     
-    # Create rich table
+    # Create rich table 
+    # Display only symbol, name, market cap, recommendation, scores
     table = Table(title="Screener Results")
     table.add_column("Symbol", style="cyan", no_wrap=True)
     table.add_column("Name", style="white")
     table.add_column("Market Cap", style="magenta")
-    table.add_column("Price", style="green")
+    # table.add_column("Price", style="green")
     table.add_column("Composite\nScore", style="yellow")
-    table.add_column("Reversal", style="blue")
-    table.add_column("Breakout", style="blue")
+    # table.add_column("Reversal", style="blue")
+    # table.add_column("Breakout", style="blue")
     table.add_column("Recommendation", style="bold red")
     
     for _, row in df_display.iterrows():
         symbol = str(row.get('symbol', 'N/A'))
         name = str(row.get('name', 'N/A'))[:20]
         market_cap = str(row.get('market_cap_category', 'N/A'))
-        price = f"${row.get('current_price', 0):.2f}"
-        composite = f"{row.get('composite_score', 0):.1f}"
-        reversal = f"{row.get('reversal_score', 0):.1f}"
-        breakout = f"{row.get('breakout_score', 0):.1f}"
+        # price = f"${row.get('current_price', 0):.2f}"
+        # composite = f"{row.get('composite_score', 0):.1f}"
+        # reversal = f"{row.get('reversal_score', 0):.1f}"
+        # breakout = f"{row.get('breakout_score', 0):.1f}"
         rec = str(row.get('recommendation', 'N/A'))
         
-        table.add_row(symbol, name, market_cap, price, composite, reversal, breakout, rec)
+        table.add_row(symbol, name, market_cap, rec)
     
     # Print table to string
     from io import StringIO
@@ -67,6 +68,9 @@ def interactive_screener():
     # data_provider = ScreenerDataProvider()
     
     while True:
+        console.print("\n[bold yellow]Select Mode:[/] 1. AI-assisted  2. Manual")
+        user_mode = Prompt.ask("Mode", choices=["AI", "Manual"], default="Manual")
+        
         console.print("\n[bold yellow]Enter your screening request[/] (or 'quit' to exit):")
         user_input = Prompt.ask("You").strip()
         
@@ -112,28 +116,36 @@ def interactive_screener():
                 min_score=50
             )
             
-            # Filter by market cap if specified (only if column exists)
-            if market_cap_pref and not results.empty and 'market_cap_category' in results.columns:
-                results = results[results['market_cap_category'] == market_cap_pref]
-            
+            if user_mode == "Manual":
+                console.print("   → Manual mode selected. Skipping LLM-based screening.")
+                if market_cap_pref and not results.empty:
+                # Filter by market cap if specified (only if column exists)
+                # if market_cap_pref and not results.empty and 'market_cap_category' in results.columns:
+                    # results = results[results['market_cap_category'] == market_cap_pref]
+                    
+                    #print results
+                    results = pd.DataFrame([stock.model_dump() for stock in results.stocks])
+
+                    # Limit results
+                    if len(results) > limit:
+                        results = results.head(limit)
+                    
+                    # Step 4: Display results
+                    console.print("\n4️⃣  [bold green]Results:[/]")
+                    if not results.empty:
+                        console.print(format_results(results, limit=limit))
+                        console.print(f"\n[bold]Found {len(results)} matching stocks[/]")
+                    else:
+                        console.print("[yellow]No stocks matched your criteria. Try adjusting filters.[/]")
+                
             # screen logic execution
-            console.print("4. Executing screening logic...")
-            results = screen_logic_agent(intent, all_stock_df[['symbol', 'rsi', 'atr_percent', 'volume_ratio']])
-
-            #print results
-            results = pd.DataFrame([stock.model_dump() for stock in results.stocks])
-
-            # Limit results
-            if len(results) > limit:
-                results = results.head(limit)
-            
-            # Step 4: Display results
-            console.print("\n4️⃣  [bold green]Results:[/]")
-            if not results.empty:
-                console.print(format_results(results, limit=limit))
-                console.print(f"\n[bold]Found {len(results)} matching stocks[/]")
-            else:
-                console.print("[yellow]No stocks matched your criteria. Try adjusting filters.[/]")
+            if user_mode == "AI":
+                console.print("4. Executing screening logic using LLM...")
+                results = screen_logic_agent(intent, all_stock_df[['symbol', 'rsi', 'atr_percent', 'volume_ratio']])
+                console.print("\n[bold green]Results:[/]")
+                if not results.empty:
+                    console.print(format_results(results, limit=limit))
+                    console.print(f"\n[bold]Found {len(results)} matching stocks[/]")
         
         except Exception as e:
             console.print(f"[red]Error: {str(e)}[/]")
