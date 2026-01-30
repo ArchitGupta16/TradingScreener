@@ -107,7 +107,7 @@ class BreezeFetcher:
         all_data = {}
         for symbol in symbols:
             try:
-                historical_data = self.breeze.get_historical_data_v2(
+                historical_data = self.breeze.get_historical_data(
                     interval=interval,
                     from_date=start_date.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                     to_date=end_date.strftime("%Y-%m-%dT%H:%M:%S.000Z"),

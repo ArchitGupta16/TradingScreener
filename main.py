@@ -105,7 +105,7 @@ def interactive_screener():
             path = f"D://Projects//Screener//stock_universe//{intent.market}.txt"
             stock_universe = read_stock_symbols(
                                         file_path=path,
-                                        symbol_column="ExchangeCode"   # or "ScripName"
+                                        symbol_column="ShortName"   # or "ScripName"
                                     )
 
             # Screen for patterns
