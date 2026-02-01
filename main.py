@@ -21,9 +21,7 @@ config = omegacnf()
 
 def format_results(df: pd.DataFrame, limit: int = 10) -> str:
     """Format screening results for display."""
-    if df.empty:
-        return "No stocks matched the criteria."
-    
+
     df_display = df.head(limit).copy()
     
     # Create rich table 
@@ -143,7 +141,7 @@ def interactive_screener():
                 console.print("4. Executing screening logic using LLM...")
                 results = screen_logic_agent(intent, all_stock_df[['symbol', 'rsi', 'atr_percent', 'volume_ratio']])
                 console.print("\n[bold green]Results:[/]")
-                if not results.empty:
+                if len(results)>0:
                     console.print(format_results(results, limit=limit))
                     console.print(f"\n[bold]Found {len(results)} matching stocks[/]")
         

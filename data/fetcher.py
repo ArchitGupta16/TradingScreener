@@ -118,7 +118,7 @@ class BreezeFetcher:
                 if historical_data and len(historical_data) > 0:
                     df = pd.DataFrame(historical_data)
                     df.columns = [str(col).lower() for col in df.columns]
-                    data[symbol] = df
+                    # data[symbol] = df
                     print(f"Fetched {len(df)} rows for {symbol} from Breeze")
                     all_data[symbol] = df
                 else:
