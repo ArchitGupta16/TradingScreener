@@ -16,6 +16,8 @@ from data.fetcher import ScreenerDataProvider
 from stock_universe.stock_symbols import read_stock_symbols
 from configs.config import config as omegacnf
 
+from utils.openai_model import openai_caller
+
 console = Console()
 config = omegacnf()
 
@@ -85,7 +87,8 @@ def interactive_screener():
             
             # Step 1: Parse intent with LLM
             console.print("1️⃣  Interpreting intent...")
-            intent = style_agent(user_input)
+            intent = openai_caller(config.prompts.input_prompt.format(query=user_input))
+            intent = eval(intent)
             console.print(f"   → Style: {intent.style}, Market: {intent.market}")
             
             # Extract market cap category from request
@@ -139,7 +142,8 @@ def interactive_screener():
             # screen logic execution
             if user_mode == "AI":
                 console.print("4. Executing screening logic using LLM...")
-                results = screen_logic_agent(intent, all_stock_df[['symbol', 'rsi', 'atr_percent', 'volume_ratio']])
+                results = openai_caller(config.prompts.trading_propmt.format(criteria=intent, stock_details=all_stock_df[
+                    ['symbol', 'rsi', 'atr_percent', 'volume_ratio']].to_json(orient='records')))
                 console.print("\n[bold green]Results:[/]")
                 if len(results)>0:
                     console.print(format_results(results, limit=limit))
